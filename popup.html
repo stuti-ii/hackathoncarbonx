@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CarbonX</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════
+       AUTH SCREEN  (shown when not logged in)
+  ════════════════════════════════════════════════ -->
+  <div id="authScreen">
+
+    <div class="auth-header">
+      <div class="logo">🌿</div>
+      <h1>CarbonX</h1>
+      <p class="auth-tagline">Track your browsing footprint</p>
+    </div>
+
+    <!-- Tab switcher -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin"    data-tab="login">Login</button>
+      <button class="auth-tab"        id="tabRegister" data-tab="register">Register</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <div class="auth-form" id="formLogin">
+      <div class="field">
+        <label class="field-label" for="loginEmail">Email</label>
+        <input class="field-input" id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="loginPassword">Password</label>
+        <input class="field-input" id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <div class="auth-error" id="loginError"></div>
+      <button class="btn btn-auth" id="btnLogin">Login</button>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div class="auth-form hidden" id="formRegister">
+      <div class="field">
+        <label class="field-label" for="regEmail">Email</label>
+        <input class="field-input" id="regEmail" type="email" placeholder="you@example.com" autocomplete="email" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="regPassword">Password</label>
+        <input class="field-input" id="regPassword" type="password" placeholder="••••••••" autocomplete="new-password" />
+      </div>
+      <div class="field">
+        <label class="field-label" for="regConfirm">Confirm Password</label>
+        <input class="field-input" id="regConfirm" type="password" placeholder="••••••••" autocomplete="new-password" />
+      </div>
+      <div class="auth-error" id="regError"></div>
+      <button class="btn btn-auth" id="btnRegister">Create Account</button>
+    </div>
+
+    <footer class="auth-footer">
+      <span>CarbonX v2.0</span>
+    </footer>
+
+  </div><!-- /#authScreen -->
+
+
+  <!-- ═══════════════════════════════════════════════
+       MAIN TRACKER SCREEN  (shown when logged in)
+  ════════════════════════════════════════════════ -->
+  <div id="mainScreen" class="hidden">
+
+    <header>
+      <div class="logo">🌿</div>
+      <h1>CarbonX</h1>
+      <div class="session-badge" id="sessionBadge">Inactive</div>
+      <button class="btn-logout" id="btnLogout" title="Logout">↩</button>
+    </header>
+
+    <!-- Current site being tracked -->
+    <div class="site-card">
+      <div class="site-label">Now Tracking</div>
+      <div class="site-name idle" id="siteName">— session inactive —</div>
+      <div class="site-timer" id="siteTimer"></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value green" id="statSites">0</div>
+        <div class="stat-label">Sites</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value teal" id="statRecords">0</div>
+        <div class="stat-label">Records</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value orange" id="statTime">0s</div>
+        <div class="stat-label">Session</div>
+      </div>
+    </div>
+
+    <!-- Activity log -->
+    <div class="log">
+      <div class="log-header">Activity This Session</div>
+      <div id="logEntries"><div class="log-empty">Start a session to begin tracking</div></div>
+    </div>
+
+    <!-- Start / Stop buttons -->
+    <div class="btn-row">
+      <button class="btn btn-start" id="btnStart">▶ Start Session</button>
+      <button class="btn btn-stop"  id="btnStop" disabled>⏹ Stop &amp; Send</button>
+    </div>
+
+    <!-- Result toast -->
+    <div class="toast" id="toast"></div>
+
+    <footer>
+      <span id="sessionId" style="font-family:'JetBrains Mono',monospace"></span>
+      <span>CarbonX v2.0</span>
+    </footer>
+
+  </div><!-- /#mainScreen -->
+
+  <script src="popup.js"></script>
+</body>
+</html>
