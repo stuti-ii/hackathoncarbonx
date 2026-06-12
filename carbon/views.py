@@ -1,17 +1,21 @@
-from urllib import request
-
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.response import Response
+
 from django.db.models import Sum
-from carbon.models import Activity
-from .serializers import ActivitySerializer
-from rest_framework.permissions import IsAuthenticated
 from django.db.models.functions import TruncDate
-# REGISTER API
+
+from rest_framework.permissions import IsAuthenticated
+
+from carbon.models import Activity
+from .serializers import ActivitySerializer, RegisterSerializer
+
+
+# -------------------------
+# REGISTER
+# -------------------------
 @api_view(['POST'])
 def register(request):
     serializer = RegisterSerializer(data=request.data)
@@ -26,7 +30,9 @@ def register(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# LOGIN API
+# -------------------------
+# LOGIN
+# -------------------------
 @api_view(['POST'])
 def login(request):
     username = request.data.get('username')
@@ -47,11 +53,14 @@ def login(request):
         status=status.HTTP_401_UNAUTHORIZED
     )
 
+
+# -------------------------
+# ACTIVITIES
+# -------------------------
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def activities(request):
 
-    # CREATE ACTIVITY (Chrome extension sends data here)
     if request.method == 'POST':
         serializer = ActivitySerializer(
             data=request.data,
@@ -64,14 +73,16 @@ def activities(request):
 
         return Response(serializer.errors, status=400)
 
-    # GET USER ACTIVITIES (dashboard)
     if request.method == 'GET':
         data = Activity.objects.filter(user=request.user).order_by('-created_at')
         serializer = ActivitySerializer(data, many=True)
         return Response(serializer.data)
-    
 
-    @api_view(["GET"])
+
+# -------------------------
+# DASHBOARD SUMMARY
+# -------------------------
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def dashboard_summary(request):
 
@@ -79,7 +90,7 @@ def dashboard_summary(request):
 
     total_carbon = sum(a.carbon for a in activities)
     total_energy = sum(a.energy for a in activities)
-    ai_usage = sum(a.duration for a in activities if a.category == "AI")
+    ai_usage = sum(a.duration for a in activities)
 
     eco_score = max(0, 100 - int(total_carbon))
 
@@ -90,19 +101,40 @@ def dashboard_summary(request):
         "aiUsage": ai_usage
     })
 
+
+# -------------------------
+# BREAKDOWN (FIXED)
+# -------------------------
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def carbon_breakdown(request):
 
-    data = (
-        Activity.objects
-        .filter(user=request.user)
-        .values("category")
-        .annotate(carbon=Sum("carbon"))
-    )
+    activities = Activity.objects.filter(user=request.user)
 
-    return Response(data)
+    breakdown = {}
 
+    for a in activities:
+        platform = a.platform.lower()
+
+        if platform in ["chatgpt", "gemini", "claude"]:
+            key = "AI Usage"
+        elif platform in ["youtube", "netflix", "spotify"]:
+            key = "Streaming"
+        elif platform in ["instagram", "facebook", "tiktok"]:
+            key = "Social Media"
+        elif platform in ["google", "chrome", "browser"]:
+            key = "Browsing"
+        else:
+            key = "Other"
+
+        breakdown[key] = breakdown.get(key, 0) + a.carbon
+
+    return Response(breakdown)
+
+
+# -------------------------
+# TRENDS
+# -------------------------
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def carbon_trends(request):
@@ -119,22 +151,36 @@ def carbon_trends(request):
     return Response(trends)
 
 
+# -------------------------
+# ECO SCORE
+# -------------------------
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def eco_score(request):
 
-    total = Activity.objects.filter(user=request.user).aggregate(total=Sum("carbon"))["total"] or 0
+    total = Activity.objects.filter(user=request.user).aggregate(
+        total=Sum("carbon")
+    )["total"]
 
+    if total is None:
+        total = 0
 
     score = max(0, 100 - int(total))
 
     return Response({
         "score": score,
-        "rating": "Good" if score > 70 else "Needs Improvement",
+        "rating": (
+            "Excellent" if score > 85 else
+            "Good" if score > 70 else
+            "Needs Improvement"
+        ),
         "aiEfficiency": 85,
         "streamingEfficiency": 78
     })
 
+# -------------------------
+# RECOMMENDATIONS
+# -------------------------
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def recommendations(request):
