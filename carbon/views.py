@@ -7,16 +7,48 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Sum
 from django.db.models.functions import TruncDate
 
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
-from carbon.models import Activity
+from carbon.models import Activity, User
 from .serializers import ActivitySerializer, RegisterSerializer
+
+
+def authenticate_with_identifier(identifier, password):
+    if not identifier or not password:
+        return None
+
+    user = authenticate(username=identifier, password=password)
+    if user:
+        return user
+
+    matched_user = (
+        User.objects
+        .filter(username=identifier)
+        .only(User.USERNAME_FIELD)
+        .first()
+    )
+    if matched_user:
+        return authenticate(
+            username=getattr(matched_user, User.USERNAME_FIELD),
+            password=password
+        )
+
+    return None
+
+
+def jwt_response_for_user(user):
+    refresh = RefreshToken.for_user(user)
+    return Response({
+        "access": str(refresh.access_token),
+        "refresh": str(refresh),
+    })
 
 
 # -------------------------
 # REGISTER
 # -------------------------
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def register(request):
     serializer = RegisterSerializer(data=request.data)
 
@@ -34,22 +66,35 @@ def register(request):
 # LOGIN
 # -------------------------
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def login(request):
-    username = request.data.get('username')
+    username = request.data.get('username') or request.data.get('email')
     password = request.data.get('password')
 
-    user = authenticate(username=username, password=password)
+    user = authenticate_with_identifier(username, password)
 
     if user:
-        refresh = RefreshToken.for_user(user)
-
-        return Response({
-            "access": str(refresh.access_token),
-            "refresh": str(refresh),
-        })
+        return jwt_response_for_user(user)
 
     return Response(
-        {"error": "Invalid credentials"},
+        {"detail": "Invalid credentials"},
+        status=status.HTTP_401_UNAUTHORIZED
+    )
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def token_obtain_pair(request):
+    identifier = request.data.get('username') or request.data.get('email')
+    password = request.data.get('password')
+
+    user = authenticate_with_identifier(identifier, password)
+
+    if user:
+        return jwt_response_for_user(user)
+
+    return Response(
+        {"detail": "Invalid credentials"},
         status=status.HTTP_401_UNAUTHORIZED
     )
 
@@ -95,41 +140,35 @@ def dashboard_summary(request):
     eco_score = max(0, 100 - int(total_carbon))
 
     return Response({
-        "totalCarbon": total_carbon,
+        "totalCarbon": round(total_carbon, 2),
         "ecoScore": eco_score,
-        "energyConsumed": total_energy,
+        "energyConsumed": round(total_energy, 2),
         "aiUsage": ai_usage
     })
 
 
 # -------------------------
-# BREAKDOWN (FIXED)
+# BREAKDOWN
 # -------------------------
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def carbon_breakdown(request):
 
-    activities = Activity.objects.filter(user=request.user)
+    breakdown = (
+        Activity.objects
+        .filter(user=request.user)
+        .values("platform")
+        .annotate(carbon=Sum("carbon"))
+        .order_by("platform")
+    )
 
-    breakdown = {}
-
-    for a in activities:
-        platform = a.platform.lower()
-
-        if platform in ["chatgpt", "gemini", "claude"]:
-            key = "AI Usage"
-        elif platform in ["youtube", "netflix", "spotify"]:
-            key = "Streaming"
-        elif platform in ["instagram", "facebook", "tiktok"]:
-            key = "Social Media"
-        elif platform in ["google", "chrome", "browser"]:
-            key = "Browsing"
-        else:
-            key = "Other"
-
-        breakdown[key] = breakdown.get(key, 0) + a.carbon
-
-    return Response(breakdown)
+    return Response([
+        {
+            "platform": item["platform"].lower(),
+            "carbon": round(item["carbon"] or 0, 2),
+        }
+        for item in breakdown
+    ])
 
 
 # -------------------------
@@ -148,7 +187,13 @@ def carbon_trends(request):
         .order_by("day")
     )
 
-    return Response(trends)
+    return Response([
+        {
+            "day": item["day"].isoformat(),
+            "carbon": round(item["carbon"] or 0, 2),
+        }
+        for item in trends
+    ])
 
 
 # -------------------------
