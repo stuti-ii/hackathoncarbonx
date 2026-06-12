@@ -1,0 +1,364 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap");
+
+:root {
+  --font-primary: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  /* Color Palette - White + Green Light Theme */
+  --bg-dark: #f4f7f5;
+  --bg-card: rgba(255, 255, 255, 0.85);
+  --bg-card-hover: rgba(255, 255, 255, 0.95);
+  --border-card: rgba(16, 185, 129, 0.12);
+  --border-card-active: rgba(16, 185, 129, 0.4);
+  
+  --color-primary: #10b981; /* Emerald Green */
+  --color-secondary: #16a34a; /* Green-600 */
+  --color-text-main: #1e293b; /* Dark Slate */
+  --color-text-muted: #475569; /* Slate Gray */
+  --color-text-dim: #94a3b8; /* Light Slate */
+  
+  --gradient-accent: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  --gradient-glow: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(22, 197, 94, 0.12));
+  
+  --shadow-card: 0 12px 40px -8px rgba(0, 0, 0, 0.06), 0 4px 12px -2px rgba(16, 185, 129, 0.04);
+  --shadow-glow: 0 0 20px 0 rgba(16, 185, 129, 0.12);
+  
+  --radius-lg: 16px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+  
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Global Reset & Base */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--color-text-main);
+  font-family: var(--font-primary);
+  font-size: 16px;
+  line-height: 1.5;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Background Animated Blobs */
+.auth-page {
+  align-items: center;
+  background-color: var(--bg-dark);
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(22, 197, 94, 0.05) 0%, transparent 40%);
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  position: relative;
+  width: 100%;
+}
+
+.auth-page::before,
+.auth-page::after {
+  content: "";
+  filter: blur(100px);
+  height: 300px;
+  opacity: 0.15;
+  position: absolute;
+  width: 300px;
+  z-index: 0;
+}
+
+.auth-page::before {
+  animation: float-blob-one 15s infinite ease-in-out;
+  background: var(--color-primary);
+  left: 20%;
+  top: 15%;
+}
+
+.auth-page::after {
+  animation: float-blob-two 20s infinite ease-in-out;
+  background: var(--color-secondary);
+  bottom: 15%;
+  right: 20%;
+}
+
+/* Auth Card */
+.auth-card {
+  animation: card-appear 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  max-width: 440px;
+  padding: 40px 32px;
+  position: relative;
+  transition: var(--transition-smooth);
+  width: 100%;
+  z-index: 1;
+}
+
+.auth-card:hover {
+  border-color: rgba(16, 185, 129, 0.25);
+  box-shadow: 0 20px 48px -12px rgba(16, 185, 129, 0.1);
+}
+
+/* Header & Branding */
+.auth-header {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.auth-logo {
+  align-items: center;
+  animation: spin-leaf 8s ease-in-out infinite alternate;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(22, 197, 94, 0.12));
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 50%;
+  color: var(--color-primary);
+  display: flex;
+  font-size: 24px;
+  justify-content: center;
+  margin-bottom: 12px;
+  padding: 14px;
+}
+
+.auth-brand {
+  color: var(--color-text-main);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+}
+
+.auth-brand span {
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.auth-header h1 {
+  color: var(--color-text-main);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.auth-header p {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* Form Styles */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Fields & Inputs */
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.auth-field span {
+  color: var(--color-text-main);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.auth-input {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  display: flex;
+  font-size: 18px;
+  position: relative;
+  transition: var(--transition-smooth);
+}
+
+.auth-input:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-glow);
+  color: var(--color-primary);
+}
+
+.auth-input svg {
+  margin-left: 14px;
+  pointer-events: none;
+}
+
+.auth-input input {
+  background: transparent;
+  border: none;
+  color: var(--color-text-main);
+  font-family: var(--font-primary);
+  font-size: 14px;
+  outline: none;
+  padding: 12px 14px 12px 10px;
+  width: 100%;
+}
+
+.auth-input input::placeholder {
+  color: var(--color-text-dim);
+}
+
+/* Button & Interactivity */
+.auth-button {
+  align-items: center;
+  background: var(--gradient-accent);
+  border: none;
+  border-radius: var(--radius-md);
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  font-family: var(--font-primary);
+  font-size: 14px;
+  font-weight: 700;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+  outline: none;
+  padding: 14px;
+  position: relative;
+  transition: var(--transition-smooth);
+  width: 100%;
+}
+
+.auth-button:hover:not(:disabled) {
+  box-shadow: var(--shadow-glow);
+  transform: translateY(-1px);
+}
+
+.auth-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.auth-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.auth-button span {
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Footer Switch Auth Links */
+.auth-footer {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  margin-top: 24px;
+  text-align: center;
+}
+
+.auth-footer a {
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 600;
+  margin-left: 6px;
+  text-decoration: none;
+  transition: var(--transition-smooth);
+}
+
+.auth-footer a:hover {
+  filter: brightness(1.2);
+}
+
+/* Dummy Dashboard styles just to look consistent */
+.dashboard-fallback {
+  align-items: center;
+  background-color: var(--bg-dark);
+  background-image: radial-gradient(circle at center, rgba(16, 185, 129, 0.1) 0%, transparent 60%);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  width: 100vw;
+}
+
+.dashboard-fallback h1 {
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 48px;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+
+.dashboard-fallback p {
+  color: var(--color-text-muted);
+  font-size: 18px;
+  max-width: 500px;
+}
+
+/* Keyframes & Animations */
+@keyframes card-appear {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin-leaf {
+  from {
+    transform: rotate(0deg) scale(1);
+  }
+  to {
+    transform: rotate(20deg) scale(1.05);
+  }
+}
+
+@keyframes float-blob-one {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(50px, -50px) scale(1.2);
+  }
+  66% {
+    transform: translate(-30px, 40px) scale(0.8);
+  }
+}
+
+@keyframes float-blob-two {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-40px, 60px) scale(1.15);
+  }
+}
+
+/* Toast customization styles override */
+.go3130519001 {
+  background: #ffffff !important;
+  border: 1px solid rgba(16, 185, 129, 0.15) !important;
+  color: var(--color-text-main) !important;
+  font-family: var(--font-primary) !important;
+  font-size: 13px !important;
+}
