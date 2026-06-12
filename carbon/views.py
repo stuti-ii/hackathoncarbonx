@@ -1,3 +1,5 @@
+from urllib import request
+
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
@@ -76,14 +78,8 @@ def dashboard_summary(request):
     activities = Activity.objects.filter(user=request.user)
 
     total_carbon = sum(a.carbon for a in activities)
-
     total_energy = sum(a.energy for a in activities)
-
-    ai_usage = sum(
-        a.duration
-        for a in activities
-        if a.category == "AI"
-    )
+    ai_usage = sum(a.duration for a in activities if a.category == "AI")
 
     eco_score = max(0, 100 - int(total_carbon))
 
@@ -127,14 +123,10 @@ def carbon_trends(request):
 @permission_classes([IsAuthenticated])
 def eco_score(request):
 
-    total_carbon = (
-        Activity.objects
-        .filter(user=request.user)
-        .aggregate(total=Sum("carbon"))
-        ["total"] or 0
-    )
+    total = Activity.objects.filter(user=request.user).aggregate(total=Sum("carbon"))["total"] or 0
 
-    score = max(0, 100 - int(total_carbon))
+
+    score = max(0, 100 - int(total))
 
     return Response({
         "score": score,
