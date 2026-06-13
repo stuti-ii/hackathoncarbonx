@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Activity, User, UserProfile, Transaction
+from .models import Activity, User, UserProfile, Transaction, Notification
 from .carbon_engine import calculate_carbon
 
 
@@ -52,3 +52,9 @@ class TransactionSerializer(serializers.ModelSerializer):
         model = Transaction
         fields = ['id', 'project_id', 'project_name', 'transaction_type', 'quantity', 'total_value', 'created_at']
         read_only_fields = ['created_at']
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'title', 'message', 'type', 'is_read', 'created_at']

@@ -21,4 +21,10 @@ urlpatterns = [
     path("trading/deposit/", views.deposit_cash),
     path("trading/profile/", views.trading_profile),
     path("trading/transactions/", views.trading_transactions),
+
+    # Notification endpoints
+    path("notifications/", views.get_notifications),
+    path("notifications/read/<int:id>/", views.mark_notification_read),
+    path("notifications/count/", views.unread_count),
 ]
+

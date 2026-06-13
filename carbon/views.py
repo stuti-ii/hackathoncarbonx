@@ -7,7 +7,7 @@ from datetime import timedelta
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from django.http import HttpResponse
-from .models import Activity, UserProfile, Transaction
+from .models import Activity, UserProfile, Transaction, Notification
 
 from django.db.models import Sum
 from django.db.models.functions import TruncDate
@@ -15,8 +15,8 @@ from django.utils import timezone
 
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
-from carbon.models import Activity, User, UserProfile, Transaction
-from .serializers import ActivitySerializer, RegisterSerializer, UserProfileSerializer, TransactionSerializer
+from carbon.models import Activity, User, UserProfile, Transaction, Notification
+from .serializers import ActivitySerializer, RegisterSerializer, UserProfileSerializer, TransactionSerializer, NotificationSerializer
 from decimal import Decimal
 
 
@@ -642,3 +642,57 @@ def trading_transactions(request):
             {"error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# -------------------------
+# NOTIFICATIONS
+# -------------------------
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_notifications(request):
+    """Get all notifications for the current user, ordered newest first"""
+    try:
+        notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+        serializer = NotificationSerializer(notifications, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mark_notification_read(request, id):
+    """Mark a specific notification as read if it belongs to the current user"""
+    try:
+        notification = Notification.objects.get(id=id, user=request.user)
+        notification.is_read = True
+        notification.save()
+        return Response({"success": True}, status=status.HTTP_200_OK)
+    except Notification.DoesNotExist:
+        return Response(
+            {"error": "Notification not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def unread_count(request):
+    """Get count of unread notifications for the current user"""
+    try:
+        count = Notification.objects.filter(user=request.user, is_read=False).count()
+        return Response({"unread_count": count}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
