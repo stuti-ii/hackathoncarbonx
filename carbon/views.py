@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-from datetime import timedelta
+from datetime import timedelta, time, datetime
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from django.http import HttpResponse
@@ -376,11 +376,51 @@ def recommendations(request):
     return Response([
         {
             "title": "Reduce AI Usage",
-            "description": "Reduce daily AI use by 15 minutes."
+            "description": "Reduce daily AI use by 15 minutes to lower computational energy consumption."
         },
         {
             "title": "Lower Streaming Quality",
-            "description": "Watch videos in 720p instead of 4K."
+            "description": "Watch videos in 720p instead of 4K when high resolution is unnecessary."
+        },
+        {
+            "title": "Use Wi-Fi Instead of Mobile Data",
+            "description": "Wi-Fi networks are generally more energy-efficient than mobile data for large transfers."
+        },
+        {
+            "title": "Disable Autoplay",
+            "description": "Prevent unnecessary video streaming by turning off autoplay on media platforms."
+        },
+        {
+            "title": "Compress Images Before Uploading",
+            "description": "Smaller image files require less storage and network bandwidth."
+        },
+        {
+            "title": "Reduce Cloud Storage Clutter",
+            "description": "Delete duplicate photos, videos, and unused files from cloud storage."
+        },
+        {
+            "title": "Limit Background Sync",
+            "description": "Reduce unnecessary app refreshes and background data transfers."
+        },
+        {
+            "title": "Download Frequently Used Content",
+            "description": "Downloading content once can reduce repeated streaming emissions."
+        },
+        {
+            "title": "Choose Efficient AI Models",
+            "description": "Use lightweight AI models for simple tasks instead of large models."
+        },
+        {
+            "title": "Enable CarbonX Eco Mode",
+            "description": "Automatically optimize data usage, media quality, and AI requests."
+        },
+        {
+            "title": "Offset Your Digital Footprint",
+            "description": "Purchase carbon credits to compensate for your estimated emissions."
+        },
+        {
+            "title": "Reduce Unused Browser Tabs",
+            "description": "Multiple active tabs consume processing power and increase energy usage."
         }
     ])
 @api_view(["GET"])
@@ -648,11 +688,73 @@ def trading_transactions(request):
 # NOTIFICATIONS
 # -------------------------
 
+def ensure_daily_notification(user):
+    """Ensure a creative daily carbon awareness notification is generated for today"""
+    try:
+        today = timezone.localdate()
+        start_of_day = timezone.make_aware(datetime.combine(today, time.min))
+        end_of_day = timezone.make_aware(datetime.combine(today, time.max))
+
+        exists = Notification.objects.filter(
+            user=user,
+            type="DAILY_REPORT",
+            created_at__range=(start_of_day, end_of_day)
+        ).exists()
+
+        if not exists:
+            # Calculate today's emissions
+            total_today = Activity.objects.filter(
+                user=user,
+                created_at__range=(start_of_day, end_of_day)
+            ).aggregate(total=Sum('carbon'))['total'] or 0.0
+
+            # Find the platform with the highest emissions today
+            highest_platform = Activity.objects.filter(
+                user=user,
+                created_at__range=(start_of_day, end_of_day)
+            ).values('platform').annotate(total=Sum('carbon')).order_by('-total').first()
+
+            tip = "Try to shut down inactive tabs and limit streaming hours to reduce your footprint."
+            if highest_platform:
+                platform_name = highest_platform['platform'].lower()
+                if 'netflix' in platform_name:
+                    tip = "Since Netflix was your top carbon source today, switching from 4K/HD to SD can save up to 75% of streaming emissions."
+                elif 'youtube' in platform_name:
+                    tip = "Since YouTube was your top carbon source today, disabling autoplay and lowering playback resolution can help reduce emissions."
+                elif 'instagram' in platform_name or 'facebook' in platform_name:
+                    tip = "Since social media was your main source of carbon today, setting a daily app usage limit will significantly lower your footprint."
+
+            total_today_rounded = round(total_today, 2)
+            if total_today == 0:
+                title = "Daily Carbon Status: Pristine!"
+                message = "Zero emissions tracked today! You're keeping your carbon footprint perfectly clean. Fantastic job!"
+            elif total_today <= 2:
+                title = "Daily Carbon Status: Good"
+                message = f"You have emitted {total_today_rounded} kg CO₂ today. Good job keeping it low! {tip} Let's try to reduce it even further."
+            elif total_today <= 5:
+                title = "Daily Carbon Alert: Moderate"
+                message = f"You have emitted {total_today_rounded} kg CO₂ today. {tip} Take a short screen break to reduce your impact."
+            else:
+                title = "Daily Carbon Alert: High"
+                message = f"Alert: You have emitted {total_today_rounded} kg CO₂ today. This is quite high! {tip} Consider setting limit challenges to reduce your online carbon footprint."
+
+            Notification.objects.create(
+                user=user,
+                title=title,
+                message=message,
+                type="DAILY_REPORT"
+            )
+    except Exception:
+        # Avoid crashing the views if notification generation fails for any reason
+        pass
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_notifications(request):
     """Get all notifications for the current user, ordered newest first"""
     try:
+        ensure_daily_notification(request.user)
         notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
         serializer = NotificationSerializer(notifications, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -689,10 +791,12 @@ def mark_notification_read(request, id):
 def unread_count(request):
     """Get count of unread notifications for the current user"""
     try:
+        ensure_daily_notification(request.user)
         count = Notification.objects.filter(user=request.user, is_read=False).count()
         return Response({"unread_count": count}, status=status.HTTP_200_OK)
     except Exception as e:
         return Response(
             {"error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        )
+

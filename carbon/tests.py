@@ -150,17 +150,20 @@ class NotificationSystemTests(APITestCase):
         response = client_anon.get("/api/notifications/")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-        # 2. Get Notifications (User 1)
+        # 2. Get Notifications (User 1) - Generates daily notification on the fly, so count is 2 (n1 + daily)
         response = self.client1.get("/api/notifications/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["id"], n1.id)
-        self.assertEqual(response.data[0]["title"], "Alert 1")
+        self.assertEqual(len(response.data), 2)
+        
+        # Verify both n1 and daily notifications are present
+        notification_ids = [n["id"] for n in response.data]
+        self.assertIn(n1.id, notification_ids)
+        self.assertTrue(any(n["type"] == "DAILY_REPORT" for n in response.data))
 
-        # 3. Unread Count (User 1)
+        # 3. Unread Count (User 1) - n1 was unread, daily is also unread -> count = 2
         response = self.client1.get("/api/notifications/count/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["unread_count"], 1)
+        self.assertEqual(response.data["unread_count"], 2)
 
         # 4. Mark Read (User 1 trying to mark User 2's notification read -> should return 404/not allowed)
         response = self.client1.post(f"/api/notifications/read/{n2.id}/")
@@ -175,7 +178,41 @@ class NotificationSystemTests(APITestCase):
         n1.refresh_from_db()
         self.assertTrue(n1.is_read)
 
-        # 6. Unread Count is now 0 for User 1
+        # 6. Unread Count is now 1 for User 1 (daily is still unread)
         response = self.client1.get("/api/notifications/count/")
-        self.assertEqual(response.data["unread_count"], 0)
+        self.assertEqual(response.data["unread_count"], 1)
+
+    def test_daily_carbon_notification(self):
+        """Test daily notifications generation logic and content creativity based on carbon levels"""
+        # User starts with no activities today (0 emissions)
+        response = self.client2.get("/api/notifications/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Verify daily report exists and has pristine status message
+        daily_reports = Notification.objects.filter(user=self.user2, type="DAILY_REPORT")
+        self.assertEqual(daily_reports.count(), 1)
+        self.assertEqual(daily_reports.first().title, "Daily Carbon Status: Pristine!")
+        self.assertIn("Zero emissions tracked today", daily_reports.first().message)
+
+        # Now add some activities today for user 2
+        # Let's delete the daily report so we can generate a new one (simulating daily change/new query on another day/new time)
+        daily_reports.delete()
+
+        # Add Netflix activity (duration 70 mins -> 3.5 kg)
+        self.client2.post("/api/activities/", {
+            "platform": "netflix",
+            "duration": 70
+        })
+
+        # Fetch notifications to generate the new report
+        response = self.client2.get("/api/notifications/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        daily_reports = Notification.objects.filter(user=self.user2, type="DAILY_REPORT")
+        self.assertEqual(daily_reports.count(), 1)
+        report = daily_reports.first()
+        self.assertEqual(report.title, "Daily Carbon Alert: Moderate")
+        self.assertIn("netflix", report.message.lower())
+        self.assertIn("3.5", report.message)
+
 
