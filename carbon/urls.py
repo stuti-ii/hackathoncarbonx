@@ -1,13 +1,15 @@
-from django.urls import path
-from .views import activities, carbon_breakdown, carbon_trends, dashboard_summary, eco_score, recommendations, register
+from . import views
 
 urlpatterns = [
-    path('register/', register),
-    path('auth/register/', register),
-    path('activities/', activities),
-    path("dashboard/summary/", dashboard_summary),
-    path("dashboard/breakdown/", carbon_breakdown),
-    path("dashboard/trends/", carbon_trends),
-    path("ecoscore/", eco_score),
-    path("recommendations/", recommendations),
+    path('register/', views.register),
+    path('auth/register/', views.register),
+    path('activities/', views.activities),
+    path("dashboard/summary/", views.dashboard_summary),
+    path("dashboard/breakdown/", views.carbon_breakdown),
+    path("dashboard/trends/", views.carbon_trends),
+    path("ecoscore/", views.eco_score),
+    path("recommendations/", views.recommendations),
+
+    
+    path("check-activities/", views.check_activities),
 ]

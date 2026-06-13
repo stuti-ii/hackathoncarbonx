@@ -249,3 +249,23 @@ def recommendations(request):
             "description": "Watch videos in 720p instead of 4K."
         }
     ])
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def check_activities(request):
+    activities = Activity.objects.filter(user=request.user).order_by("-created_at")
+
+    return Response({
+        "user": request.user.email,
+        "count": activities.count(),
+        "activities": [
+            {
+                "id": a.id,
+                "platform": a.platform,
+                "duration": a.duration,
+                "carbon": a.carbon,
+                "energy": a.energy,
+                "created_at": a.created_at
+            }
+            for a in activities
+        ]
+    })
