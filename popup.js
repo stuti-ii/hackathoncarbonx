@@ -1,6 +1,6 @@
 // popup.js — CarbonX v2
 
-const API_BASE = "https://carbonx-l8qh.onrender.com";
+const API_BASE = "https://hackathoncarbonx.onrender.com";
 
 // ══════════════════════════════════════════════════════════════
 //  AUTH

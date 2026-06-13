@@ -10,7 +10,7 @@
 //          POSTed to the backend as one batch.
 // ─────────────────────────────────────────────────────────────
 
-const API_BASE = "https://carbonx-l8qh.onrender.com";
+const API_BASE = "https://hackathoncarbonx.onrender.com";
 const API_ADD_ACTIVITY = `${API_BASE}/api/activities/`;
 const IDLE_SECONDS = 60; // treat user as away after 60 s of OS idle
 
