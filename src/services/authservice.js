@@ -1,82 +1,43 @@
 import api from "./api";
 
 const authService = {
-  /**
-   * Logs in a user by calling POST /api/auth/login/
-   * Returns a session object with { token, user: { email, name } }
-   */
+  // POST /api/login/  →  { access, refresh }
   login: async (email, password) => {
+    const res = await api.post("/api/token/", {
+      username: email,
+      password,
+    });
+
+    localStorage.setItem("access", res.data.access);
+    localStorage.setItem("refresh", res.data.refresh);
+
+    let name = email.split("@")[0];
     try {
-      const response = await api.post("/api/auth/login/", {
-        username: email, // Django username_field is email
-        email: email,
-        password: password,
-      });
+      const payload = JSON.parse(atob(res.data.access.split(".")[1]));
+      name = payload.username || payload.name || name;
+    } catch { /* non-decodable token — use email prefix */ }
 
-      // SimpleJWT returns access and refresh tokens.
-      const { access } = response.data;
-
-      // Extract username/name if backend returns it, otherwise fallback to email prefix
-      const name = response.data.username || email.split("@")[0];
-
-      return {
-        token: access,
-        user: {
-          email: email,
-          name: name,
-        },
-      };
-    } catch (error) {
-      const message =
-        error.response?.data?.error ||
-        error.response?.data?.detail ||
-        "Invalid email or password.";
-      throw new Error(message);
-    }
+    return {
+      access: res.data.access,
+      refresh: res.data.refresh,
+      user: { email, name },
+    };
   },
 
-  /**
-   * Registers a user by calling POST /api/auth/register/
-   * Automatically performs login afterwards to obtain a JWT session token.
-   */
+  // POST /api/register/  →  then auto-login
   register: async (name, email, password) => {
-    try {
-      // Django's username field validation allows letters, numbers, and @/./+/-/_ characters.
-      // We sanitize the name by replacing spaces with underscores and filtering out invalid characters.
-      const sanitizedUsername = name
-        .trim()
-        .replace(/\s+/g, "_")
-        .replace(/[^a-zA-Z0-9@./+\-_]/g, "");
+    const username =
+      name.trim().replace(/\s+/g, "_").replace(/[^a-zA-Z0-9@./+\-_]/g, "") ||
+      email.split("@")[0];
 
-      // Create user
-      await api.post("/api/auth/register/", {
-        username: sanitizedUsername || email.split("@")[0].replace(/[^a-zA-Z0-9@./+\-_]/g, ""),
-        email: email,
-        password: password,
-      });
+    await api.post("/api/register/", { username, email, password });
 
-      // Log the user in immediately to get tokens and provide a smooth user experience
-      return await authService.login(email, password);
-    } catch (error) {
-      let message = "Registration failed.";
-      if (error.response?.data) {
-        const errors = error.response.data;
-        if (typeof errors === "object") {
-          // Format validation errors (e.g. {"email": ["User with this email already exists."]})
-          const errList = Object.entries(errors).map(([field, msgs]) => {
-            const fieldName = field.charAt(0).toUpperCase() + field.slice(1);
-            const detail = Array.isArray(msgs) ? msgs.join(" ") : msgs;
-            return `${fieldName}: ${detail}`;
-          });
-          if (errList.length > 0) {
-            message = errList.join("\n");
-          }
-        } else if (typeof errors === "string") {
-          message = errors;
-        }
-      }
-      throw new Error(message);
-    }
+    return await authService.login(email, password);
+  },
+
+  logout: () => {
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
   },
 };
 

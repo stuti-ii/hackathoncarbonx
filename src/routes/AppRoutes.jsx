@@ -1,28 +1,31 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from '../pages/auth/Login';
 import Signup from '../pages/auth/Signup';
-
-// Temporary Dashboard stub
-const DummyDashboard = () => (
-  <div className="dashboard-fallback">
-    <h1>CarbonX Dashboard</h1>
-    <p>Authentication successful. Moving forward...</p>
-  </div>
-);
+import Dashboard from '../pages/Dashboard';
+import ProtectedRoute from './ProtectedRoute';
 
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* Root path: auto-redirects to /login if you aren't logged in yet */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* Root path: auto-redirects to /dashboard (which redirects to /login if unauthenticated) */}
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
       {/* Explicit Auth Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
-      <Route path="/dashboard" element={<DummyDashboard />} />
+      
+      {/* Protected Dashboard Route */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* Wildcard Fallback: If any URL is mismatched, instantly safely redirect to login */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      {/* Wildcard Fallback */}
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 };

@@ -36,7 +36,7 @@ function Login() {
       return;
     }
 
-    const success = await login(email.trim(), password, authService.login);
+    const success = await login(email.trim(), password);
 
     if (success) {
       toast.success("Successfully logged in!");

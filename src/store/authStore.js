@@ -1,51 +1,96 @@
 import { create } from "zustand";
-
-const storedUser = localStorage.getItem("carbonx_user");
-const storedToken = localStorage.getItem("carbonx_token");
+import authService from "../services/authservice";
 
 export const useAuthStore = create((set) => ({
-  error: null,
+  user: null,
+  token: localStorage.getItem("access") || null,
+  isAuthenticated: !!localStorage.getItem("access"),
   loading: false,
-  token: storedToken,
-  user: storedUser ? JSON.parse(storedUser) : null,
+  error: null,
 
   setError: (error) => set({ error }),
 
-  login: async (email, password, loginRequest) => {
-    set({ error: null, loading: true });
+  login: async (email, password) => {
+    set({
+      loading: true,
+      error: null,
+    });
 
     try {
-      const session = await loginRequest(email, password);
+      const data = await authService.login(
+        email,
+        password
+      );
 
-      localStorage.setItem("carbonx_token", session.token);
-      localStorage.setItem("carbonx_user", JSON.stringify(session.user));
-      set({ loading: false, token: session.token, user: session.user });
+      set({
+        user: data.user,
+        token: localStorage.getItem("access"),
+        isAuthenticated: true,
+        loading: false,
+      });
+
       return true;
     } catch (error) {
-      set({ error: error.message || "Login failed.", loading: false });
+      set({
+        loading: false,
+        error:
+          error.response?.data?.detail ||
+          error.message ||
+          "Login failed",
+      });
+
       return false;
     }
   },
 
-  signup: async (name, email, password, signupRequest) => {
-    set({ error: null, loading: true });
+  signup: async (
+    name,
+    email,
+    password
+  ) => {
+    set({
+      loading: true,
+      error: null,
+    });
 
     try {
-      const session = await signupRequest(name, email, password);
+      const data =
+        await authService.register(
+          name,
+          email,
+          password
+        );
 
-      localStorage.setItem("carbonx_token", session.token);
-      localStorage.setItem("carbonx_user", JSON.stringify(session.user));
-      set({ loading: false, token: session.token, user: session.user });
+      set({
+        user: data.user,
+        token: localStorage.getItem("access"),
+        isAuthenticated: true,
+        loading: false,
+      });
+
       return true;
     } catch (error) {
-      set({ error: error.message || "Signup failed.", loading: false });
+      set({
+        loading: false,
+        error:
+          error.response?.data?.detail ||
+          error.message ||
+          "Signup failed",
+      });
+
       return false;
     }
   },
 
   logout: () => {
-    localStorage.removeItem("carbonx_token");
-    localStorage.removeItem("carbonx_user");
-    set({ error: null, token: null, user: null });
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+
+    set({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      error: null,
+    });
   },
 }));

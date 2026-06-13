@@ -37,7 +37,7 @@ function Signup() {
       return;
     }
 
-    const success = await signup(name.trim(), email.trim(), password, authService.register);
+    const success = await signup(name.trim(), email.trim(), password);
 
     if (success) {
       toast.success("Account created! Welcome to CarbonX.");

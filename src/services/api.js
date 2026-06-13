@@ -7,18 +7,18 @@ const api = axios.create({
   },
 });
 
-// Automatically inject JWT access token into the request header if it is stored locally
+// Automatically attach JWT access token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("carbonx_token");
+    const token = localStorage.getItem("access");
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 export default api;
