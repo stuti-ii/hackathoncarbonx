@@ -9,6 +9,9 @@ urlpatterns = [
     path("dashboard/breakdown/", views.carbon_breakdown),
     path("dashboard/trends/", views.carbon_trends),
     path("ecoscore/", views.eco_score),
+    path("gamification/profile/", views.gamification_profile),
+    path("gamification/badges/", views.gamification_badges),
+    path("gamification/challenges/", views.gamification_challenges),
     path("recommendations/", views.recommendations),
 
     
