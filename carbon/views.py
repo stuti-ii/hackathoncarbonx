@@ -4,6 +4,10 @@ from django.contrib.auth import authenticate
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from datetime import timedelta
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from django.http import HttpResponse
+from .models import Activity
 
 from django.db.models import Sum
 from django.db.models.functions import TruncDate
@@ -168,7 +172,7 @@ def token_obtain_pair(request):
 
     user = authenticate_with_identifier(identifier, password)
 
-    if user:
+    if user:  
         return jwt_response_for_user(user)
 
     return Response(
@@ -346,7 +350,7 @@ def gamification_challenges(request):
         {
             "id": 2,
             "title": "Stream Smarter",
-            "description": "Watch streaming at 1080p instead of 4K for a week.",
+            "description": "Used streaming platforms for less than 1 hour today.",
             "reward_xp": 75,
             "completed": False,
             "deadline": "Weekly"
@@ -398,3 +402,32 @@ def check_activities(request):
             for a in activities
         ]
     })
+
+def generate_pdf(request):
+    user = request.user
+    activities = Activity.objects.filter(user=user)
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="carbonx_report.pdf"'
+
+    pdf = SimpleDocTemplate(response)
+    styles = getSampleStyleSheet()
+
+    content = []
+
+    content.append(Paragraph("CarbonX Activity Report", styles["Title"]))
+    content.append(Spacer(1, 12))
+
+    total_carbon = sum([a.carbon for a in activities])
+
+    content.append(Paragraph(f"Total Carbon: {total_carbon}", styles["Heading2"]))
+    content.append(Spacer(1, 12))
+
+    for a in activities:
+        text = f"Platform: {a.platform} | Duration: {a.duration} | Carbon: {a.carbon}"
+        content.append(Paragraph(text, styles["BodyText"]))
+        content.append(Spacer(1, 8))
+
+    pdf.build(content)
+
+    return response
