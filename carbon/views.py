@@ -7,7 +7,7 @@ from datetime import timedelta
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from django.http import HttpResponse
-from .models import Activity
+from .models import Activity, UserProfile, Transaction
 
 from django.db.models import Sum
 from django.db.models.functions import TruncDate
@@ -15,8 +15,9 @@ from django.utils import timezone
 
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
-from carbon.models import Activity, User
-from .serializers import ActivitySerializer, RegisterSerializer
+from carbon.models import Activity, User, UserProfile, Transaction
+from .serializers import ActivitySerializer, RegisterSerializer, UserProfileSerializer, TransactionSerializer
+from decimal import Decimal
 
 
 def authenticate_with_identifier(identifier, password):
@@ -431,3 +432,213 @@ def generate_pdf(request):
     pdf.build(content)
 
     return response
+
+
+# -------------------------
+# TRADING ENDPOINTS
+# -------------------------
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def execute_trade(request):
+    """
+    Execute a BUY or OFFSET trade.
+    
+    Body:
+    {
+        "project_id": "proj-1",
+        "projectName": "Terai Forest Conservation",
+        "type": "BUY",  # or "OFFSET"
+        "quantity": 1.50,
+        "totalValue": 27.75
+    }
+    """
+    try:
+        user = request.user
+        project_id = request.data.get('project_id')
+        project_name = request.data.get('projectName')
+        trade_type = request.data.get('type', '').upper()
+        quantity = Decimal(str(request.data.get('quantity', 0)))
+        total_value = Decimal(str(request.data.get('totalValue', 0)))
+
+        if not project_name or not trade_type:
+            return Response(
+                {"error": "Missing required fields: projectName, type"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if trade_type not in ['BUY', 'OFFSET']:
+            return Response(
+                {"error": "Invalid type. Must be 'BUY' or 'OFFSET'"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Get or create user profile
+        profile, created = UserProfile.objects.get_or_create(user=user)
+
+        if trade_type == 'BUY':
+            # Check if user has enough balance
+            if profile.cash_balance < total_value:
+                return Response(
+                    {
+                        "error": "Insufficient balance",
+                        "available": float(profile.cash_balance),
+                        "required": float(total_value)
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Deduct cash and add credits
+            profile.cash_balance -= total_value
+            profile.credits_owned += quantity
+            profile.save()
+
+            # Log transaction
+            Transaction.objects.create(
+                user=user,
+                project_id=project_id,
+                project_name=project_name,
+                transaction_type='BUY',
+                quantity=quantity,
+                total_value=total_value
+            )
+
+        elif trade_type == 'OFFSET':
+            # Check if user has enough credits
+            if profile.credits_owned < quantity:
+                return Response(
+                    {
+                        "error": "Insufficient credits",
+                        "available": float(profile.credits_owned),
+                        "required": float(quantity)
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Deduct credits and add to retired offset
+            profile.credits_owned -= quantity
+            profile.total_retired_offset += (quantity * 1000)
+            profile.save()
+
+            # Log transaction
+            Transaction.objects.create(
+                user=user,
+                project_id=project_id,
+                project_name=project_name,
+                transaction_type='OFFSET',
+                quantity=quantity,
+                total_value=total_value
+            )
+
+        return Response({
+            "success": True,
+            "message": f"{trade_type} transaction completed",
+            "cash_balance": float(profile.cash_balance),
+            "credits_owned": float(profile.credits_owned),
+            "total_retired_offset": float(profile.total_retired_offset)
+        }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def deposit_cash(request):
+    """
+    Deposit cash to user account (simulated payment).
+    
+    Body:
+    {
+        "amount": 500.00,
+        "method": "esewa"  # or "khalti" / "card"
+    }
+    """
+    try:
+        user = request.user
+        amount = Decimal(str(request.data.get('amount', 0)))
+        method = request.data.get('method', 'card').lower()
+
+        if amount <= 0:
+            return Response(
+                {"error": "Amount must be greater than 0"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Get or create user profile
+        profile, created = UserProfile.objects.get_or_create(user=user)
+
+        # Add amount to cash balance
+        profile.cash_balance += amount
+        profile.save()
+
+        # Log transaction
+        Transaction.objects.create(
+            user=user,
+            project_id=None,
+            project_name=f"{method.upper()} Deposit",
+            transaction_type='DEPOSIT',
+            quantity=Decimal('0'),
+            total_value=amount
+        )
+
+        return Response({
+            "success": True,
+            "message": f"Deposit of ${amount} completed via {method}",
+            "cash_balance": float(profile.cash_balance),
+            "credits_owned": float(profile.credits_owned),
+            "total_retired_offset": float(profile.total_retired_offset)
+        }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def trading_profile(request):
+    """Get current user's trading profile"""
+    try:
+        user = request.user
+        profile, created = UserProfile.objects.get_or_create(user=user)
+
+        return Response({
+            "cash_balance": float(profile.cash_balance),
+            "credits_owned": float(profile.credits_owned),
+            "total_retired_offset": float(profile.total_retired_offset),
+            "created_at": profile.created_at,
+            "updated_at": profile.updated_at
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def trading_transactions(request):
+    """Get all transactions for current user"""
+    try:
+        user = request.user
+        transactions = Transaction.objects.filter(user=user)
+        serializer = TransactionSerializer(transactions, many=True)
+
+        return Response({
+            "total_transactions": transactions.count(),
+            "transactions": serializer.data
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

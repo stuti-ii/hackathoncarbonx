@@ -14,7 +14,11 @@ urlpatterns = [
     path("gamification/challenges/", views.gamification_challenges),
     path("recommendations/", views.recommendations),
     path("download-report/", views.generate_pdf),
-
-    
     path("check-activities/", views.check_activities),
+    
+    # Trading endpoints
+    path("trading/trade/", views.execute_trade),
+    path("trading/deposit/", views.deposit_cash),
+    path("trading/profile/", views.trading_profile),
+    path("trading/transactions/", views.trading_transactions),
 ]
