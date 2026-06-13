@@ -1,18 +1,19 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuthStore } from "../store/authStore";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
-import { 
-  FiActivity, FiClock, FiZap, FiPlusCircle, FiLogOut, 
-  FiSearch, FiTrendingUp, FiPieChart, FiAward, FiBookOpen 
+import {
+  FiActivity, FiClock, FiZap, FiPlusCircle, FiLogOut,
+  FiSearch, FiTrendingUp, FiPieChart, FiAward, FiBookOpen, FiHome
 } from "react-icons/fi";
 import { FaLeaf } from "react-icons/fa";
-import { 
+import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip,
   PieChart, Pie, Cell, Legend
 } from "recharts";
 import activityService, { calculateCarbon } from "../services/activityService";
 import dashboardService from "../services/dashboardService";
+import NotificationBell from "../components/NotificationBell";
 
 // Category mapping helper
 const getCategory = (platform) => {
@@ -28,7 +29,7 @@ const CATEGORY_COLORS = {
   "Streaming": "#3b82f6",       // Blue
   "Social Media": "#ec4899",     // Pink
   "AI Usage": "#10b981",         // Emerald Green
-  "Browsing": "#94a3b8"          // Slate
+  "Browsing": "#cdb642ff"          // Slate
 };
 
 // Format YYYY-MM-DD date string to short weekday abbreviation
@@ -45,8 +46,16 @@ const formatTrendDay = (dayStr) => {
 function Dashboard() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
-  const [activeTab, setActiveTab] = useState("insights"); // "insights" or "feed"
-  
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") === "feed" ? "feed" : "insights";
+  const setActiveTab = (tab) => {
+    if (tab === "feed") {
+      setSearchParams({ tab: "feed" });
+    } else {
+      setSearchParams({});
+    }
+  };
+
   // Data states
   const [summary, setSummary] = useState({ totalCarbon: 0, ecoScore: 0, energyConsumed: 0, aiUsage: 0 });
   const [breakdown, setBreakdown] = useState([]);
@@ -54,12 +63,12 @@ function Dashboard() {
   const [ecoScoreDetail, setEcoScoreDetail] = useState({ score: 0, rating: "Fair", aiEfficiency: 0, streamingEfficiency: 0 });
   const [recommendations, setRecommendations] = useState([]);
   const [activities, setActivities] = useState([]);
-  
+
   // UI states
   const [loading, setLoading] = useState(true);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [loggingActivity, setLoggingActivity] = useState(false);
-  
+
   // Logger form states
   const [logPlatform, setLogPlatform] = useState("youtube");
   const [logDuration, setLogDuration] = useState("");
@@ -142,11 +151,11 @@ function Dashboard() {
     try {
       await activityService.logActivity(platformName.toLowerCase().trim(), durationMins);
       toast.success(`Logged ${durationMins}m on ${platformName}!`);
-      
+
       // Clear inputs
       setLogDuration("");
       setCustomPlatform("");
-      
+
       // Reload dashboard metrics
       await fetchDashboardData(true);
     } catch (err) {
@@ -194,44 +203,31 @@ function Dashboard() {
   return (
     <div className="dashboard-page">
       {/* Top Navbar */}
-      <nav className="dashboard-nav">
-        <div className="nav-brand">
-          <FaLeaf aria-hidden="true" />
-          <span>CarbonX</span>
+      <nav className="dash-nav">
+        <div className="dash-nav-brand">
+          <FaLeaf className="brand-leaf" aria-hidden="true" />
+          <span>Carbon<strong>X</strong></span>
         </div>
-        
-        <div className="nav-controls">
-          <div className="nav-tabs" role="tablist">
-            <button 
-              className={`nav-tab-btn ${activeTab === "insights" ? "active" : ""}`}
-              onClick={() => setActiveTab("insights")}
-              role="tab"
-              aria-selected={activeTab === "insights"}
-            >
-              Dashboard
-            </button>
-            <button 
-              className={`nav-tab-btn ${activeTab === "feed" ? "active" : ""}`}
-              onClick={() => setActiveTab("feed")}
-              role="tab"
-              aria-selected={activeTab === "feed"}
-            >
-              Activity Feed
-            </button>
-            <Link to="/gamification" className="nav-tab-btn gamif-nav-link">
-              <FiAward aria-hidden="true" /> Achievements
-            </Link>
-            <Link to="/trading" className="nav-tab-btn gamif-nav-link">
-              <FiTrendingUp aria-hidden="true" /> Carbon Trading
-            </Link>
-          </div>
-
-          <div className="user-profile">
-            <button className="logout-btn" onClick={handleLogout}>
-              <FiLogOut aria-hidden="true" />
-              <span>Sign Out</span>
-            </button>
-          </div>
+        <div className="dash-nav-links">
+          <Link to="/dashboard" className={`nav-link ${activeTab === "insights" ? "active" : ""}`}>
+            <FiHome /> Dashboard
+          </Link>
+          <Link to="/dashboard?tab=feed" className={`nav-link ${activeTab === "feed" ? "active" : ""}`}>
+            <FiActivity /> Activity Feed
+          </Link>
+          <Link to="/gamification" className="nav-link">
+            <FiAward /> Achievements
+          </Link>
+          <Link to="/trading" className="nav-link">
+            <FiTrendingUp /> Carbon Trading
+          </Link>
+        </div>
+        <div className="dash-nav-right">
+          <NotificationBell />
+          <span className="nav-user">{user?.name || user?.email || "User"}</span>
+          <button className="nav-logout-btn" onClick={handleLogout}>
+            <FiLogOut /> Logout
+          </button>
         </div>
       </nav>
 
@@ -310,7 +306,7 @@ function Dashboard() {
                 </span>
               </div>
               <div className="metric-value">
-                {activities.reduce((sum, a) => sum + a.duration, 0)}
+                {activities.reduce((sum, a) => (sum + a.duration) / 60, 0)}
                 <span>mins</span>
               </div>
               <span className="metric-footer">Tracked across browsers & apps</span>
@@ -341,28 +337,28 @@ function Dashboard() {
                             <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0.0} />
                           </linearGradient>
                         </defs>
-                        <XAxis 
-                          dataKey="day" 
-                          stroke="var(--color-text-dim)" 
+                        <XAxis
+                          dataKey="day"
+                          stroke="var(--color-text-dim)"
                           fontSize={12}
                           tickLine={false}
                           axisLine={false}
                           tickFormatter={formatTrendDay}
                         />
-                        <YAxis 
-                          stroke="var(--color-text-dim)" 
+                        <YAxis
+                          stroke="var(--color-text-dim)"
                           fontSize={12}
                           tickLine={false}
                           axisLine={false}
                         />
                         <Tooltip content={<CustomTooltip />} />
-                        <Area 
-                          type="monotone" 
-                          dataKey="carbon" 
-                          stroke="var(--color-primary)" 
-                          strokeWidth={3} 
-                          fillOpacity={1} 
-                          fill="url(#carbonGlow)" 
+                        <Area
+                          type="monotone"
+                          dataKey="carbon"
+                          stroke="var(--color-primary)"
+                          strokeWidth={3}
+                          fillOpacity={1}
+                          fill="url(#carbonGlow)"
                         />
                       </AreaChart>
                     </ResponsiveContainer>
@@ -392,15 +388,15 @@ function Dashboard() {
                             nameKey="category"
                           >
                             {breakdown.map((entry, index) => (
-                              <Cell 
-                                key={`cell-${index}`} 
-                                fill={CATEGORY_COLORS[entry.category] || CATEGORY_COLORS["Browsing"]} 
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={CATEGORY_COLORS[entry.category] || CATEGORY_COLORS["Browsing"]}
                               />
                             ))}
                           </Pie>
-                          <Tooltip 
+                          <Tooltip
                             formatter={(value) => [`${value.toFixed(1)} kg CO₂e`, "Emissions"]}
-                            contentStyle={{ 
+                            contentStyle={{
                               background: "rgba(255, 255, 255, 0.95)",
                               border: "1px solid rgba(16, 185, 129, 0.15)",
                               borderRadius: "10px",
@@ -408,9 +404,9 @@ function Dashboard() {
                               boxShadow: "0 8px 24px rgba(0, 0, 0, 0.06)"
                             }}
                           />
-                          <Legend 
-                            verticalAlign="bottom" 
-                            height={36} 
+                          <Legend
+                            verticalAlign="bottom"
+                            height={36}
                             iconType="circle"
                             iconSize={8}
                             wrapperStyle={{ fontSize: "11px" }}
@@ -428,182 +424,182 @@ function Dashboard() {
               </section>
 
               {/* Lower Section split: Health Rating, Recommendations, Logger */}
-              <section className="insights-grid">
-                {/* Eco Score Circular Gauge + Efficiency */}
-                <div className="chart-card">
-                  <div className="chart-header">
-                    <div>
-                      <h3 className="chart-title">Eco Health</h3>
-                      <p className="chart-subtitle">Efficiency metrics rating</p>
-                    </div>
+              {/* <section className="insights-grid"> */}
+              {/* Eco Score Circular Gauge + Efficiency */}
+              <div className="chart-card">
+                <div className="chart-header">
+                  <div>
+                    <h3 className="chart-title">Eco Health</h3>
+                    <p className="chart-subtitle">Efficiency metrics rating</p>
                   </div>
-                  <div className="eco-details-container">
-                    <div className="circular-gauge-wrapper">
-                      <svg className="circular-gauge-bg">
-                        <circle
-                          cx="65"
-                          cy="65"
-                          r={gaugeRadius}
-                          stroke="#e2ebe5"
-                          strokeWidth="10"
-                          fill="transparent"
-                        />
-                        <circle
-                          cx="65"
-                          cy="65"
-                          r={gaugeRadius}
-                          stroke={
-                            ecoScoreDetail.rating === "Excellent" ? "#10b981" :
+                </div>
+                <div className="eco-details-container">
+                  <div className="circular-gauge-wrapper">
+                    <svg className="circular-gauge-bg">
+                      <circle
+                        cx="65"
+                        cy="65"
+                        r={gaugeRadius}
+                        stroke="#e2ebe5"
+                        strokeWidth="10"
+                        fill="transparent"
+                      />
+                      <circle
+                        cx="65"
+                        cy="65"
+                        r={gaugeRadius}
+                        stroke={
+                          ecoScoreDetail.rating === "Excellent" ? "#10b981" :
                             ecoScoreDetail.rating === "Good" ? "#16a34a" :
-                            ecoScoreDetail.rating === "Fair" ? "#f59e0b" : "#ef4444"
-                          }
-                          strokeWidth="10"
-                          fill="transparent"
-                          strokeDasharray={gaugeCircumference}
-                          strokeDashoffset={gaugeOffset}
-                          strokeLinecap="round"
+                              ecoScoreDetail.rating === "Fair" ? "#f59e0b" : "#ef4444"
+                        }
+                        strokeWidth="10"
+                        fill="transparent"
+                        strokeDasharray={gaugeCircumference}
+                        strokeDashoffset={gaugeOffset}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div className="gauge-center-text">
+                      <span className="gauge-score">{ecoScoreDetail.score}</span>
+                      <span className={`gauge-rating ${ecoScoreDetail.rating.toLowerCase()}`}>
+                        {ecoScoreDetail.rating}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="efficiency-bars-list">
+                    <div className="efficiency-item">
+                      <div className="efficiency-item-header">
+                        <span>AI Compute Efficiency</span>
+                        <span>{ecoScoreDetail.aiEfficiency}%</span>
+                      </div>
+                      <div className="efficiency-progress-bg">
+                        <div
+                          className="efficiency-progress-bar ai"
+                          style={{ width: `${ecoScoreDetail.aiEfficiency}%` }}
                         />
-                      </svg>
-                      <div className="gauge-center-text">
-                        <span className="gauge-score">{ecoScoreDetail.score}</span>
-                        <span className={`gauge-rating ${ecoScoreDetail.rating.toLowerCase()}`}>
-                          {ecoScoreDetail.rating}
-                        </span>
                       </div>
                     </div>
 
-                    <div className="efficiency-bars-list">
-                      <div className="efficiency-item">
-                        <div className="efficiency-item-header">
-                          <span>AI Compute Efficiency</span>
-                          <span>{ecoScoreDetail.aiEfficiency}%</span>
-                        </div>
-                        <div className="efficiency-progress-bg">
-                          <div 
-                            className="efficiency-progress-bar ai" 
-                            style={{ width: `${ecoScoreDetail.aiEfficiency}%` }}
-                          />
-                        </div>
+                    <div className="efficiency-item">
+                      <div className="efficiency-item-header">
+                        <span>Streaming Efficiency</span>
+                        <span>{ecoScoreDetail.streamingEfficiency}%</span>
                       </div>
-
-                      <div className="efficiency-item">
-                        <div className="efficiency-item-header">
-                          <span>Streaming Efficiency</span>
-                          <span>{ecoScoreDetail.streamingEfficiency}%</span>
-                        </div>
-                        <div className="efficiency-progress-bg">
-                          <div 
-                            className="efficiency-progress-bar streaming" 
-                            style={{ width: `${ecoScoreDetail.streamingEfficiency}%` }}
-                          />
-                        </div>
+                      <div className="efficiency-progress-bg">
+                        <div
+                          className="efficiency-progress-bar streaming"
+                          style={{ width: `${ecoScoreDetail.streamingEfficiency}%` }}
+                        />
                       </div>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Actionable Recommendations */}
-                <div className="chart-card">
-                  <div className="chart-header">
-                    <div>
-                      <h3 className="chart-title">Smart Reductions</h3>
-                      <p className="chart-subtitle">Tailored guides to decrease server load</p>
-                    </div>
-                    <span style={{ color: "var(--color-primary)", display: "flex", gap: "6px", alignItems: "center", fontSize: "13px", fontWeight: 600 }}>
-                      <FiBookOpen /> Insights
-                    </span>
+              {/* Actionable Recommendations */}
+              <div className="chart-card">
+                <div className="chart-header">
+                  <div>
+                    <h3 className="chart-title">Smart Reductions</h3>
+                    <p className="chart-subtitle">Tailored guides to decrease server load</p>
                   </div>
-                  <div className="recommendations-list">
-                    {recommendations.length > 0 ? (
-                      recommendations.map((rec, index) => (
-                        <div className="recommendation-card" key={index}>
-                          <span className="recommendation-icon" aria-hidden="true">🌱</span>
-                          <div className="recommendation-info">
-                            <h4>{rec.title}</h4>
-                            <p>{rec.description}</p>
-                          </div>
+                  <span style={{ color: "var(--color-primary)", display: "flex", gap: "6px", alignItems: "center", fontSize: "13px", fontWeight: 600 }}>
+                    <FiBookOpen /> Insights
+                  </span>
+                </div>
+                <div className="recommendations-list">
+                  {recommendations.length > 0 ? (
+                    recommendations.map((rec, index) => (
+                      <div className="recommendation-card" key={index}>
+                        <span className="recommendation-icon" aria-hidden="true">🌱</span>
+                        <div className="recommendation-info">
+                          <h4>{rec.title}</h4>
+                          <p>{rec.description}</p>
                         </div>
-                      ))
-                    ) : (
-                      <div className="empty-state">
-                        <p>No recommendations computed. Great job keeping your emissions low!</p>
                       </div>
-                    )}
+                    ))
+                  ) : (
+                    <div className="empty-state">
+                      <p>No recommendations computed. Great job keeping your emissions low!</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Simulated Quick Activity Logger */}
+              <div className="chart-card">
+                <div className="chart-header">
+                  <div>
+                    <h3 className="chart-title">Quick activity simulator</h3>
+                    <p className="chart-subtitle">Simulate digital actions logged by the Chrome extension</p>
                   </div>
+                  <span style={{ color: "var(--color-primary)", display: "flex", gap: "6px", alignItems: "center", fontSize: "13px", fontWeight: 600 }}>
+                    <FiPlusCircle />
+                  </span>
                 </div>
 
-                {/* Simulated Quick Activity Logger */}
-                <div className="chart-card">
-                  <div className="chart-header">
-                    <div>
-                      <h3 className="chart-title">Quick activity simulator</h3>
-                      <p className="chart-subtitle">Simulate digital actions logged by the Chrome extension</p>
-                    </div>
-                    <span style={{ color: "var(--color-primary)", display: "flex", gap: "6px", alignItems: "center", fontSize: "13px", fontWeight: 600 }}>
-                      <FiPlusCircle /> Extension Sim
-                    </span>
+                <form onSubmit={handleLogActivity} className="logger-form">
+                  <div className="form-row">
+                    <label className="auth-field">
+                      <span>Platform / App</span>
+                      <div className="auth-input">
+                        <select
+                          className="logger-select"
+                          value={logPlatform}
+                          onChange={(e) => setLogPlatform(e.target.value)}
+                          style={{ border: "none", background: "transparent", width: "100%", padding: "12px", outline: "none", fontSize: "14px", color: "var(--color-text-main)" }}
+                        >
+                          <option value="youtube">YouTube</option>
+                          <option value="netflix">Netflix</option>
+                          <option value="instagram">Instagram</option>
+                          <option value="claude">Claude AI</option>
+                          <option value="chatgpt">ChatGPT</option>
+                          <option value="twitch">Twitch</option>
+                          <option value="tiktok">TikTok</option>
+                          <option value="gmail">Gmail</option>
+                          <option value="custom">Custom App...</option>
+                        </select>
+                      </div>
+                    </label>
+
+                    <label className="auth-field">
+                      <span>Duration (Minutes)</span>
+                      <div className="auth-input">
+                        <input
+                          type="number"
+                          min="1"
+                          placeholder="e.g. 45"
+                          value={logDuration}
+                          onChange={(e) => setLogDuration(e.target.value)}
+                          style={{ padding: "12px 14px" }}
+                        />
+                      </div>
+                    </label>
                   </div>
 
-                  <form onSubmit={handleLogActivity} className="logger-form">
-                    <div className="form-row">
-                      <label className="auth-field">
-                        <span>Platform / App</span>
-                        <div className="auth-input">
-                          <select 
-                            className="logger-select"
-                            value={logPlatform} 
-                            onChange={(e) => setLogPlatform(e.target.value)}
-                            style={{ border: "none", background: "transparent", width: "100%", padding: "12px", outline: "none", fontSize: "14px", color: "var(--color-text-main)" }}
-                          >
-                            <option value="youtube">YouTube</option>
-                            <option value="netflix">Netflix</option>
-                            <option value="instagram">Instagram</option>
-                            <option value="claude">Claude AI</option>
-                            <option value="chatgpt">ChatGPT</option>
-                            <option value="twitch">Twitch</option>
-                            <option value="tiktok">TikTok</option>
-                            <option value="gmail">Gmail</option>
-                            <option value="custom">Custom App...</option>
-                          </select>
-                        </div>
-                      </label>
-                      
-                      <label className="auth-field">
-                        <span>Duration (Minutes)</span>
-                        <div className="auth-input">
-                          <input 
-                            type="number" 
-                            min="1"
-                            placeholder="e.g. 45"
-                            value={logDuration}
-                            onChange={(e) => setLogDuration(e.target.value)}
-                            style={{ padding: "12px 14px" }}
-                          />
-                        </div>
-                      </label>
-                    </div>
+                  {logPlatform === "custom" && (
+                    <label className="auth-field" style={{ animation: "card-appear 0.3s ease-out" }}>
+                      <span>Custom App Name</span>
+                      <div className="auth-input">
+                        <input
+                          type="text"
+                          placeholder="Enter application name (e.g. Slack)"
+                          value={customPlatform}
+                          onChange={(e) => setCustomPlatform(e.target.value)}
+                          style={{ padding: "12px 14px" }}
+                        />
+                      </div>
+                    </label>
+                  )}
 
-                    {logPlatform === "custom" && (
-                      <label className="auth-field" style={{ animation: "card-appear 0.3s ease-out" }}>
-                        <span>Custom App Name</span>
-                        <div className="auth-input">
-                          <input 
-                            type="text" 
-                            placeholder="Enter application name (e.g. Slack)"
-                            value={customPlatform}
-                            onChange={(e) => setCustomPlatform(e.target.value)}
-                            style={{ padding: "12px 14px" }}
-                          />
-                        </div>
-                      </label>
-                    )}
-
-                    <button className="auth-button" disabled={loggingActivity} type="submit" style={{ marginTop: "8px" }}>
-                      <span>{loggingActivity ? "Syncing..." : "Simulate Action Event"}</span>
-                    </button>
-                  </form>
-                </div>
-              </section>
+                  <button className="auth-button" disabled={loggingActivity} type="submit" style={{ marginTop: "8px" }}>
+                    <span>{loggingActivity ? "Syncing..." : "Simulate Action Event"}</span>
+                  </button>
+                </form>
+              </div>
+              {/* </section> */}
             </>
           ) : (
             /* Tab: Activity Feed */
@@ -619,18 +615,18 @@ function Dashboard() {
               <div className="feed-filters-row">
                 <div className="feed-search-wrapper">
                   <FiSearch aria-hidden="true" />
-                  <input 
-                    type="text" 
-                    placeholder="Search platform..." 
+                  <input
+                    type="text"
+                    placeholder="Search platform..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
 
                 <div className="feed-filters">
-                  <select 
+                  <select
                     className="feed-select"
-                    value={categoryFilter} 
+                    value={categoryFilter}
                     onChange={(e) => setCategoryFilter(e.target.value)}
                   >
                     <option value="all">All Categories</option>
@@ -640,9 +636,9 @@ function Dashboard() {
                     <option value="browsing">Browsing</option>
                   </select>
 
-                  <select 
+                  <select
                     className="feed-select"
-                    value={sortBy} 
+                    value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                   >
                     <option value="newest">Newest First</option>

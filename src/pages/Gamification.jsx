@@ -5,11 +5,10 @@ import { toast } from "react-hot-toast";
 import { FaLeaf } from "react-icons/fa";
 import {
   FiLogOut, FiHome, FiAward, FiStar,
-  FiZap, FiTarget, FiCheck, FiLock, FiTrendingUp
+  FiZap, FiTarget, FiCheck, FiLock, FiTrendingUp, FiActivity
 } from "react-icons/fi";
 import gamificationService, { BADGE_TIERS } from "../services/gamificationService";
 
-// ─── Helper ───────────────────────────────────────────────────────────────────
 function getRatingColor(points) {
   if (points >= 600) return "#b9f2ff";
   if (points >= 300) return "#FFD700";
@@ -22,7 +21,6 @@ function getCurrentBadge(points) {
   return tiers.find((t) => points >= t.xpRequired) || BADGE_TIERS[0];
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
 function Gamification() {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
@@ -31,7 +29,7 @@ function Gamification() {
   const [badges, setBadges] = useState([]);
   const [challenges, setChallenges] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("profile"); // "profile" | "badges" | "challenges"
+  const [activeTab, setActiveTab] = useState("profile");
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -70,26 +68,18 @@ function Gamification() {
           <span>Carbon<strong>X</strong></span>
         </div>
         <div className="dash-nav-links">
-          <Link to="/dashboard" className="nav-link">
-            <FiHome /> Dashboard
-          </Link>
-          <Link to="/gamification" className="nav-link active">
-            <FiAward /> Achievements
-          </Link>
-          <Link to="/trading" className="nav-link">
-            <FiTrendingUp /> Carbon Trading
-          </Link>
+          <Link to="/dashboard" className="nav-link"><FiHome /> Dashboard</Link>
+          <Link to="/dashboard?tab=feed" className="nav-link"><FiActivity /> Activity Feed</Link>
+          <Link to="/gamification" className="nav-link active"><FiAward /> Achievements</Link>
+          <Link to="/trading" className="nav-link"><FiTrendingUp /> Carbon Trading</Link>
         </div>
         <div className="dash-nav-right">
           <span className="nav-user">{user?.name || user?.email || "User"}</span>
-          <button className="nav-logout-btn" onClick={handleLogout}>
-            <FiLogOut /> Logout
-          </button>
+          <button className="nav-logout-btn" onClick={handleLogout}><FiLogOut /> Logout</button>
         </div>
       </nav>
 
       <main className="gamification-main">
-        {/* ── Page Header ── */}
         <div className="gamification-header">
           <div className="gamification-title-row">
             <FiAward className="page-icon" />
@@ -119,22 +109,26 @@ function Gamification() {
                   <div className="xp-desc">{currentBadge.description}</div>
                 </div>
               </div>
+
+              {/* ── FIXED: Aligned Stats ── */}
               <div className="xp-hero-stats">
                 <div className="xp-stat">
-                  <FiStar />
+                  <span className="xp-stat-icon"><FiStar /></span>
                   <span className="xp-stat-val">{profile.points}</span>
                   <span className="xp-stat-lbl">Total XP</span>
                 </div>
                 <div className="xp-stat">
-                  <span className="xp-stat-val streak-fire">🔥 {profile.streak}</span>
+                  <span className="xp-stat-icon" style={{ fontSize: "1.2rem" }}>🔥</span>
+                  <span className="xp-stat-val">{profile.streak}</span>
                   <span className="xp-stat-lbl">Day Streak</span>
                 </div>
                 <div className="xp-stat">
-                  <FiTarget />
+                  <span className="xp-stat-icon"><FiTarget /></span>
                   <span className="xp-stat-val">{profile.next_level_xp - profile.points}</span>
                   <span className="xp-stat-lbl">XP to Next</span>
                 </div>
               </div>
+
               {/* XP Progress Bar */}
               <div className="xp-progress-wrap">
                 <div className="xp-progress-label">
@@ -154,8 +148,8 @@ function Gamification() {
             {/* ── Tab Bar ── */}
             <div className="gamif-tabs">
               {[
-                { key: "profile",    label: "Profile",    icon: <FiTrendingUp /> },
-                { key: "badges",     label: "Badges",     icon: <FiAward /> },
+                { key: "profile", label: "Profile", icon: <FiTrendingUp /> },
+                { key: "badges", label: "Badges", icon: <FiAward /> },
                 { key: "challenges", label: "Challenges", icon: <FiTarget /> },
               ].map((t) => (
                 <button
@@ -194,7 +188,6 @@ function Gamification() {
                   </div>
                 </div>
 
-                {/* Tier Roadmap */}
                 <div className="tier-roadmap">
                   <h3 className="section-subtitle">Badge Tier Roadmap</h3>
                   <div className="tier-row">
