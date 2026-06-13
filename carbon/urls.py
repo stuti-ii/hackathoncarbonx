@@ -13,7 +13,7 @@ urlpatterns = [
     path("gamification/badges/", views.gamification_badges),
     path("gamification/challenges/", views.gamification_challenges),
     path("recommendations/", views.recommendations),
-    path("api/download-report/", views.generate_pdf),
+    path("download-report/", views.generate_pdf),
 
     
     path("check-activities/", views.check_activities),
