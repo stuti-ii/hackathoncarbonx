@@ -2,6 +2,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from '../pages/auth/Login';
 import Signup from '../pages/auth/Signup';
 import Dashboard from '../pages/Dashboard';
+import Gamification from '../pages/Gamification';
+import Trading from '../pages/Trading';
 import ProtectedRoute from './ProtectedRoute';
 
 const AppRoutes = () => {
@@ -24,6 +26,26 @@ const AppRoutes = () => {
         }
       />
 
+      {/* Protected Gamification Route */}
+      <Route
+        path="/gamification"
+        element={
+          <ProtectedRoute>
+            <Gamification />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Protected Trading Route */}
+      <Route
+        path="/trading"
+        element={
+          <ProtectedRoute>
+            <Trading />
+          </ProtectedRoute>
+        }
+      />
+
       {/* Wildcard Fallback */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
@@ -31,3 +53,4 @@ const AppRoutes = () => {
 };
 
 export default AppRoutes;
+

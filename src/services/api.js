@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
+  baseURL: import.meta.env.VITE_API_URL || "https://hackathoncarbonx.onrender.com",
   headers: {
     "Content-Type": "application/json",
   },
@@ -21,4 +21,17 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-export default api;
+// On 401 Unauthorized → clear tokens and redirect to login
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem("access");
+      localStorage.removeItem("refresh");
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;

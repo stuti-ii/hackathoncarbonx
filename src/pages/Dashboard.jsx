@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuthStore } from "../store/authStore";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { 
   FiActivity, FiClock, FiZap, FiPlusCircle, FiLogOut, 
@@ -218,12 +218,15 @@ function Dashboard() {
             >
               Activity Feed
             </button>
+            <Link to="/gamification" className="nav-tab-btn gamif-nav-link">
+              <FiAward aria-hidden="true" /> Achievements
+            </Link>
+            <Link to="/trading" className="nav-tab-btn gamif-nav-link">
+              <FiTrendingUp aria-hidden="true" /> Carbon Trading
+            </Link>
           </div>
 
           <div className="user-profile">
-            {isDemoMode && (
-              <span className="demo-badge">Demo Mode (Offline)</span>
-            )}
             <button className="logout-btn" onClick={handleLogout}>
               <FiLogOut aria-hidden="true" />
               <span>Sign Out</span>
