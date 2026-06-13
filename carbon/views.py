@@ -47,19 +47,28 @@ def jwt_response_for_user(user):
 # -------------------------
 # REGISTER
 # -------------------------
-@api_view(['POST'])
+@api_view(["POST"])
 @permission_classes([AllowAny])
 def register(request):
-    serializer = RegisterSerializer(data=request.data)
+    email = request.data.get("email")
+    password = request.data.get("password")
 
-    if serializer.is_valid():
-        user = serializer.save()
-        return Response({
-            "message": "User created successfully",
-            "username": user.username
-        }, status=status.HTTP_201_CREATED)
+    if not email or not password:
+        return Response({"error": "Email and password required"}, status=400)
 
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    if User.objects.filter(email=email).exists():
+        return Response({"error": "User already exists"}, status=400)
+
+    user = User.objects.create_user(
+        username=email,
+        email=email,
+        password=password
+    )
+
+    return Response({
+        "message": "User created successfully",
+        "user_id": user.id
+    })
 
 
 # -------------------------
