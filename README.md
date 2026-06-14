@@ -1,7 +1,7 @@
 
 # 🌱 CarbonX
 
-## Turning Invisible Digital Emissions into Visible Climate Action
+## Turning Invisible Digital Emissions into Visible  Action
 
  #Overview
 CarbonX is a digital sustainability platform that helps users understand, monitor, and reduce their **digital carbon footprint**.
